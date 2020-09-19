@@ -1,6 +1,7 @@
 from os import listdir
 from os.path import isfile, join
 
+from database.mongo import GeographicMongoDB
 from utils.exif_extractor import export_exif_data
 from utils.kalman_filter import KalmanFilter
 
@@ -24,7 +25,7 @@ def load_exif_data(directory_path):
     for file_path in files_list:
         exif_data = export_exif_data(directory_path + "/" + file_path)
         if exif_data is not None:
-            exif_data['path'] = file_path
+            exif_data['path'] = directory_path + "/" + file_path
             metadata.append(exif_data)
 
     return metadata
@@ -46,8 +47,6 @@ def update_using_kalman(kalman: KalmanFilter, metadata):
             else:
                 new_data = np.array([data_utm[0], data_utm[1]]).T
             last_utm = data_utm[:2]
-
-
 
             if data["accuracy"] is not None:
                 noise_vec = [data["accuracy"] * 0.71, data["accuracy"] * 0.71]
@@ -85,7 +84,14 @@ def update_using_kalman(kalman: KalmanFilter, metadata):
     return output_data
 
 
-def extrapolate_metadata(directory_path):
+def insert_data_to_mongo(geographic_db, data):
+    for entry in data:
+        geographic_db.insert_point(long=entry["longitude"],
+                                   lat=entry["latitude"],
+                                   image_path=entry["path"])
+
+
+def extrapolate_metadata(directory_path, database_name, mongo_container):
     metadata = load_exif_data(directory_path)
 
     # Kalman
@@ -102,8 +108,16 @@ def extrapolate_metadata(directory_path):
                       init_noise_vec=init_noise_vec,
                       start_timestamp=initial_image_metadata.get("time", None))
 
-    return update_using_kalman(kalman, metadata)
+    updated_data = update_using_kalman(kalman, metadata)
+
+    geographic_db = GeographicMongoDB(database_name, mongo_container)
+
+    insert_data_to_mongo(geographic_db, updated_data)
 
 
 if __name__ == '__main__':
-    print(extrapolate_metadata("D:/Data/Work/HackZurich 2020/Seimens Mobility/Dataset/Trackpictures/bad_weather/bad_weather_thusis_filisur_20200829_pixelated"))
+    database_name = "karmanUpdated"
+    container_name = "nice_weather_filisur_thusis"
+    extrapolate_metadata("data/Trackpictures/nice_weather/nice_weather_filisur_thusis_20200824_pixelated",
+                         database_name,
+                         container_name)

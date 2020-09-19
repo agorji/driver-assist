@@ -3,11 +3,12 @@ from pymongo import GEOSPHERE
 
 
 class GeographicMongoDB:
-    def __init__(self, db_name):
+    def __init__(self, db_name, container):
         self.client = pymongo.MongoClient("localhost", 27017)
         self.location_database = self.client[db_name]
+        self.container = container
 
-        self.location_database.images.create_index([("coordinates", GEOSPHERE)])
+        self.location_database[self.container].create_index([("coordinates", GEOSPHERE)])
 
     def insert_point(self, long, lat, image_path):
         location = {
@@ -16,7 +17,7 @@ class GeographicMongoDB:
             "image_path": image_path
         }
 
-        self.location_database.images.insert_one(location)
+        self.location_database[self.container].insert_one(location)
 
     def retrieve_nearest_point(self, long, lat, max_distance=100):
         query = [{
@@ -28,7 +29,7 @@ class GeographicMongoDB:
         }, {"$limit": 1}]
 
         try:
-            return self.location_database.images.aggregate(query).next()
+            return self.location_database[self.container].aggregate(query).next()
         except StopIteration:
             return None
 
