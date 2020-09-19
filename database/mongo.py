@@ -7,23 +7,28 @@ class GeographicMongoDB:
         self.client = pymongo.MongoClient("localhost", 27017)
         self.location_database = self.client[db_name]
 
-        self.location_database.create_index([("coordinates", GEOSPHERE)])
+        self.location_database.images.create_index([("coordinates", GEOSPHERE)])
 
-    def insert_point(self, long, lat, image_name):
+    def insert_point(self, long, lat, image_path):
         location = {
             "type": "Point",
             "coordinates": [long, lat],
-            "name": "sample1"
+            "image_path": image_path
         }
 
-        self.location_database.insert_one(location)
+        self.location_database.images.insert_one(location)
 
     def retrieve_nearest_point(self, long, lat, max_distance=100):
-        self.location_database.find_one({"coordinates": {"$geoNear": [long, lat], "$maxDistance": max_distance}})
+        query = [{
+            "$geoNear": {
+                "near": {"type": "Point", "coordinates": [long, lat]},
+                "distanceField": "dist.calculated",
+                "maxDistance": max_distance
+            }
+        }, {"$limit": 1}]
 
+        try:
+            return self.location_database.images.aggregate(query).next()
+        except StopIteration:
+            return None
 
-location = {
-    "type": "Point",
-    "coordinates": [long, lat],
-    "name": "sample1"
-}
