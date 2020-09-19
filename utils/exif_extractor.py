@@ -1,5 +1,6 @@
-import exifread
 from datetime import datetime
+
+import exifread
 
 
 def export_exif_data(image_address):
@@ -12,5 +13,9 @@ def export_exif_data(image_address):
     accuracy = float(tags['GPS GPSDOP'].values[0])
     time = datetime.strptime(tags['EXIF DateTimeDigitized'].values, '%Y:%m:%d %H:%M:%S').timestamp()
 
-    return latitude, longitude, speed, accuracy, time
-
+    return {
+        'latitude': latitude,
+        'longitude': longitude,
+        'speed': speed,
+        'accuracy': accuracy,
+        'time': time}
