@@ -106,7 +106,7 @@ class KalmanFilter:
         self.kalman_gain = self.predicted_cov_mat @ observation_mat.T @ np.linalg.inv(
             observation_mat @ self.predicted_cov_mat @ observation_mat.T + self.measurement_cov_mat)
         self.measured_data = self.predicted_data + self.kalman_gain @ (new_data - observation_mat @ self.predicted_data)
-        temp_mat = np.eye(3) - self.kalman_gain @ observation_mat
+        temp_mat = np.eye(4) - self.kalman_gain @ observation_mat
         self.measured_cov_mat = temp_mat @ self.predicted_cov_mat @ temp_mat.T + self.kalman_gain @ self.measurement_cov_mat @ self.kalman_gain.T
 
         self.previous_estimate_time = estimate_time

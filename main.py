@@ -24,24 +24,30 @@ def load_exif_data(directory_path):
     for file_path in files_list:
         exif_data = export_exif_data(directory_path + "/" + file_path)
         if exif_data is not None:
+            exif_data['path'] = file_path
             metadata.append(exif_data)
 
     return metadata
 
 
 def update_using_kalman(kalman: KalmanFilter, metadata):
+    output_data = []
     last_point = metadata[0]
     last_utm = utm.from_latlon(last_point.get("latitude", None),
                                last_point.get("longitude", None))
-    for i, data in enumerate(metadata[1:]):
+    similar_data_count = 1
+    for data in metadata[1:]:
         if data["time"] != last_point["time"]:
             data_utm = utm.from_latlon(data.get("latitude", None),
                                        data.get("longitude", None))
             if data["speed"] is not None:
-                speed_vec = normalize_vec(np.array(data_utm) - np.array(last_utm)) * data["speed"]
+                speed_vec = normalize_vec(np.array([data_utm[0], data_utm[1]]) - np.array(last_utm)) * data["speed"]
                 new_data = np.array([data_utm[0], data_utm[1], speed_vec[0], speed_vec[1]]).T
             else:
-                new_data = np.array(data_utm).T
+                new_data = np.array([data_utm[0], data_utm[1]]).T
+            last_utm = data_utm[:2]
+
+
 
             if data["accuracy"] is not None:
                 noise_vec = [data["accuracy"] * 0.71, data["accuracy"] * 0.71]
@@ -51,7 +57,32 @@ def update_using_kalman(kalman: KalmanFilter, metadata):
             kalman.update_estimations(new_data=new_data,
                                       measurement_noise=noise_vec,
                                       estimate_time=data["time"])
-
+            last_point = data
+            similar_data_count = 1
+            predicted_data = kalman.predicted_data
+            predicted_utm = predicted_data[:2]
+            predicted_lat_lng = utm.to_latlon(predicted_utm[0], predicted_utm[1], data_utm[2], data_utm[3])
+            output_data.append({
+                'latitude': predicted_lat_lng[0],
+                'longitude': predicted_lat_lng[1],
+                'path': data['path']
+            })
+        else:
+            new_time = data['time'] + 0.25 * similar_data_count
+            data_utm = utm.from_latlon(data.get("latitude", None),
+                                       data.get("longitude", None))
+            last_utm = data_utm[:2]
+            kalman.predict_values(new_time)
+            predicted_data = kalman.predicted_data
+            predicted_utm = predicted_data[:2]
+            predicted_lat_lng = utm.to_latlon(predicted_utm[0], predicted_utm[1], data_utm[2], data_utm[3])
+            output_data.append({
+                'latitude': predicted_lat_lng[0],
+                'longitude': predicted_lat_lng[1],
+                'path': data['path']
+            })
+            similar_data_count += 1
+    return output_data
 
 
 def extrapolate_metadata(directory_path):
@@ -71,6 +102,8 @@ def extrapolate_metadata(directory_path):
                       init_noise_vec=init_noise_vec,
                       start_timestamp=initial_image_metadata.get("time", None))
 
+    return update_using_kalman(kalman, metadata)
 
-print(load_exif_data(
-    "/Users/agorji/Downloads/Dataset_complete/Trackpictures/bad_weather/bad_weather_thusis_filisur_20200829_pixelated"))
+
+if __name__ == '__main__':
+    print(extrapolate_metadata("D:/Data/Work/HackZurich 2020/Seimens Mobility/Dataset/Trackpictures/bad_weather/bad_weather_thusis_filisur_20200829_pixelated"))
