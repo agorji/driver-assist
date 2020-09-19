@@ -8,7 +8,7 @@ import cv2 as cv
 import time
 
 def draw_plot(image_1_path, image_2_path):
-    print(image_1_path, image_2_path)
+    # print(image_1_path, image_2_path)
     image_1 = cv.imread(image_1_path)
     image_2 = cv.imread(image_2_path)
     cv.imshow("Bad Weather", image_1)
@@ -23,7 +23,7 @@ def plot_similars(directory_path, mongo_database, mongo_container):
     for bad_entry in bad_metadata:
         nearest_point = geographic_db.retrieve_nearest_point(long=bad_entry["longitude"],
                                                              lat=bad_entry["latitude"])
-        print(nearest_point)
+        # print(nearest_point)
         draw_plot(bad_entry["path"], nearest_point["image_path"])
         time.sleep(0.25)
 
@@ -36,15 +36,20 @@ def plot_similars_from_mongo(mongo_database, bad_container, nice_container):
         bad_lat = bad_entry["coordinates"][1]
         nearest_point = geographic_db.retrieve_nearest_point(long=bad_long,
                                                              lat=bad_lat)
-        print(nearest_point)
-        draw_plot(bad_entry["image_path"], nearest_point["image_path"])
-        time.sleep(0.25)
+        if nearest_point is not None:
+            print(nearest_point["distance"])
+            draw_plot(bad_entry["image_path"], nearest_point["image_path"])
+        time.sleep(0.1)
 
 
 if __name__ == '__main__':
     database_name = "karmanUpdated"
     container_name = "nice_weather_thusis_filisur"
     bad_container_name = "bad_weather_thusis_filisur"
+    cv.namedWindow("Good Weather", cv.WINDOW_NORMAL)
+    cv.resizeWindow("Good Weather", 640, 480)
+    cv.namedWindow("Bad Weather", cv.WINDOW_NORMAL)
+    cv.resizeWindow("Bad Weather", 640, 480)
     # plot_similars("data/Trackpictures/bad_weather/bad_weather_thusis_filisur_20200829_pixelated",
     #               database_name,
     #               container_name)
