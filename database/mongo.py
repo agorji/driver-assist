@@ -23,10 +23,16 @@ class GeographicMongoDB:
         query = [{
             "$geoNear": {
                 "near": {"type": "Point", "coordinates": [long, lat]},
-                "distanceField": "dist.calculated",
+                "distanceField": "distance",
                 "maxDistance": max_distance
             }
-        }, {"$limit": 1}]
+        },
+            {"$sort": {
+                "distance": 1
+            }
+        },
+            {"$limit": 1}
+        ]
 
         try:
             return self.location_database[self.container].aggregate(query).next()

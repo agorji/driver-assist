@@ -117,7 +117,7 @@ def extrapolate_metadata(directory_path, database_name, mongo_container):
 
 if __name__ == '__main__':
     database_name = "karmanUpdated"
-    container_name = "nice_weather_filisur_thusis"
-    extrapolate_metadata("data/Trackpictures/nice_weather/nice_weather_filisur_thusis_20200824_pixelated",
+    container_name = "nice_weather_thusis_filisur"
+    extrapolate_metadata("data/Trackpictures/nice_weather/nice_weather_thusis_filisur_20200827_pixelated",
                          database_name,
                          container_name)
