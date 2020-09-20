@@ -90,18 +90,18 @@ class KalmanFilter:
                     [0, 0, measurement_noise[1] * measurement_noise[1], 0],
                     [0, 0, 0, measurement_noise[1] * measurement_noise[1]],
                 ])
-            else:
-                measure_cov_len = len(self.measurement_cov_mat)
-                if speed_included and measure_cov_len == 2:
-                    prev_dist_err = self.measurement_cov_mat[0, 0]
-                    self.measurement_cov_mat = np.array([
-                        [prev_dist_err, 0, 0, 0],
-                        [0, prev_dist_err, 0, 0],
-                        [0, 0, self.DEFAULT_SPEED_ACCURACY * self.DEFAULT_SPEED_ACCURACY, 0],
-                        [0, 0, 0, self.DEFAULT_SPEED_ACCURACY, self.DEFAULT_SPEED_ACCURACY]
-                    ])
-                elif not speed_included and measure_cov_len == 4:
-                    self.measurement_cov_mat = self.measurement_cov_mat[:2, :2]
+        else:
+            measure_cov_len = len(self.measurement_cov_mat)
+            if speed_included and measure_cov_len == 2:
+                prev_dist_err = self.measurement_cov_mat[0, 0]
+                self.measurement_cov_mat = np.array([
+                    [prev_dist_err, 0, 0, 0],
+                    [0, prev_dist_err, 0, 0],
+                    [0, 0, self.DEFAULT_SPEED_ACCURACY * self.DEFAULT_SPEED_ACCURACY, 0],
+                    [0, 0, 0, self.DEFAULT_SPEED_ACCURACY, self.DEFAULT_SPEED_ACCURACY]
+                ])
+            elif not speed_included and measure_cov_len == 4:
+                self.measurement_cov_mat = self.measurement_cov_mat[:2, :2]
 
         self.kalman_gain = self.predicted_cov_mat @ observation_mat.T @ np.linalg.inv(
             observation_mat @ self.predicted_cov_mat @ observation_mat.T + self.measurement_cov_mat)
