@@ -1,17 +1,27 @@
 import sys
 import time
+from PIL import Image
 
 import cv2 as cv
 import gpxpy
 import numpy as np
 import pygame
 import utm
+import threading
 
 from database.mongo import GeographicMongoDB
 from utils.kalman_filter import KalmanFilter
 
-real_fps = 25
-target_fps = 25
+real_fps = 30
+target_fps = 30
+
+near_image = None
+
+
+def image_load_job(image_path):
+    global near_image
+    near_image = cv.imread(image_path)
+
 
 if __name__ == '__main__':
     database_name = "kalmanUpdated"
@@ -46,6 +56,7 @@ if __name__ == '__main__':
             if way_points[index].latitude > 0:
                 utm_data = utm.from_latlon(way_points[index].latitude, way_points[index].longitude)
                 video_kalman.update_estimations(np.array(utm_data[:2]).T)
+            print(way_points[index])
             index += 1
 
         success, image = video.read()
@@ -59,12 +70,16 @@ if __name__ == '__main__':
         nearest_data = geographic_db.retrieve_nearest_point(long, lat)
         if nearest_data is not None:
             # print(nearest_data["distance"])
-            near_img = cv.imread(nearest_data["image_path"])
-            cv.imshow("Bad Weather", near_img)
+            if current_image != nearest_data["image_path"]:
+                current_image = nearest_data["image_path"]
+                threading.Thread(target=image_load_job, args=(current_image,)).start()
+        if near_image is not None:
+            cv.imshow("Bad Weather", near_image)
         cv.waitKey(1)
         clock.tick(target_fps)
         new_time = time.time()
         current_diff = new_time - prev_time
+        print(f'FPS: {1 / current_diff}')
         prev_time = new_time
         time_diff = new_time - start_real_time
-        fake_timestamp = fake_time_start + time_diff - current_diff + (1 / target_fps)
+        fake_timestamp = fake_time_start + time_diff * 0.98 - current_diff + (1 / target_fps)

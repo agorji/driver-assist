@@ -24,6 +24,7 @@ class GeographicMongoDB:
             "$geoNear": {
                 "near": {"type": "Point", "coordinates": [long, lat]},
                 "distanceField": "distance",
+                "spherical": True,
                 "maxDistance": max_distance
             }
         },

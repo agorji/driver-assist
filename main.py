@@ -36,6 +36,7 @@ def update_using_kalman(kalman: KalmanFilter, metadata):
     last_point = metadata[0]
     last_utm = utm.from_latlon(last_point.get("latitude", None),
                                last_point.get("longitude", None))
+    start_time = last_point['time']
     similar_data_count = 1
     for data in metadata[1:]:
         if data["time"] != last_point["time"]:
@@ -57,6 +58,7 @@ def update_using_kalman(kalman: KalmanFilter, metadata):
                                       measurement_noise=noise_vec,
                                       estimate_time=data["time"])
             last_point = data
+            print(last_point['time'] - start_time, similar_data_count, data.get("latitude", None), data.get("longitude", None))
             similar_data_count = 1
             predicted_data = kalman.predicted_data
             predicted_utm = predicted_data[:2]
